@@ -91,7 +91,7 @@ def unpack_batch(batch, net, device='cpu'):
     ref_vals_v = torch.FloatTensor(rewards_np).to(device)
     return states_v, actions_t, ref_vals_v
 
-
+#运行a2c方法
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=False, action="store_true", help="Enable cuda")
