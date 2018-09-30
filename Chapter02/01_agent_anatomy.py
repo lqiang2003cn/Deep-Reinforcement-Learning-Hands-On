@@ -14,6 +14,7 @@ class Environment:
     def is_done(self):
         return self.steps_left == 0
 
+    #to take the action
     def action(self, action):
         if self.is_done():
             raise Exception("Game is over")
