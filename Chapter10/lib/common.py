@@ -71,3 +71,4 @@ class AtariPGN(nn.Module):
         conv_out = self.conv(fx).view(fx.size()[0], -1)
         return self.fc(conv_out)
 
+

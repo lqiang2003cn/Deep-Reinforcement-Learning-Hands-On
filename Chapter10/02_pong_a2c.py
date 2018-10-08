@@ -37,18 +37,21 @@ class AtariA2C(nn.Module):
         )
 
         conv_out_size = self._get_conv_out(input_shape)
+        #将卷积神经网络的结果作为输入，传入到策略网络；
         self.policy = nn.Sequential(
             nn.Linear(conv_out_size, 512),
             nn.ReLU(),
             nn.Linear(512, n_actions)
         )
 
+        # 将卷积神经网络的结果作为输入，传入到状态值网络；
         self.value = nn.Sequential(
             nn.Linear(conv_out_size, 512),
             nn.ReLU(),
             nn.Linear(512, 1)
         )
 
+    #将观察结果推入到卷积神经网络，并将结果返回；
     def _get_conv_out(self, shape):
         o = self.conv(torch.zeros(1, *shape))
         return int(np.prod(o.size()))
@@ -144,9 +147,7 @@ if __name__ == "__main__":
 
                 # calculate policy gradients only
                 loss_policy_v.backward(retain_graph=True)
-                grads = np.concatenate([p.grad.data.cpu().numpy().flatten()
-                                        for p in net.parameters()
-                                        if p.grad is not None])
+                grads = np.concatenate([p.grad.data.cpu().numpy().flatten() for p in net.parameters() if p.grad is not None])
 
                 # apply entropy and value gradients
                 loss_v = entropy_loss_v + loss_value_v
