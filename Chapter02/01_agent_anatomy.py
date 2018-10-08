@@ -21,7 +21,7 @@ class Environment:
         self.steps_left -= 1
         return random.random()
 
-
+#没有记忆的Agent，没有任何智能的可能，经验+策略=智能；但还要有推翻经验的可能性；
 class Agent:
     def __init__(self):
         self.total_reward = 0.0
