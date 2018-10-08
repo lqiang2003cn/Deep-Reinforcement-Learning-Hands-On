@@ -1,6 +1,8 @@
 import gym
 
 import random
+import time
+import uuid as uuid
 
 
 class RandomActionWrapper(gym.ActionWrapper):
@@ -17,6 +19,12 @@ class RandomActionWrapper(gym.ActionWrapper):
 
 if __name__ == "__main__":
     env = RandomActionWrapper(gym.make("CartPole-v0"))
+
+    uuid = uuid.uuid1()
+    base_dir = "G:\\ai\\videos\\"
+    t = time.time()
+    dyn_dir = base_dir + str(int(t))
+    env = gym.wrappers.Monitor(env, directory=dyn_dir)
 
     obs = env.reset()
     total_reward = 0.0
