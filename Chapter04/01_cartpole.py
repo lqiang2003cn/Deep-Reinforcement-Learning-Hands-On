@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+import time
+
 import gym
 from collections import namedtuple
 import numpy as np
+import uuid as uuid
 from tensorboardX import SummaryWriter
 
 import torch
@@ -22,7 +25,7 @@ class Net(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_size, n_actions)
         )
-
+    #x为在可调用的实例时传入的输入参数。每个模块都要自己定义这个数据转换的方式，这里最简单的实现就是直接将其纳入到神经网络
     def forward(self, x):
         return self.net(x)
 
@@ -74,16 +77,26 @@ def filter_batch(batch, percentile):
     return train_obs_v, train_act_v, reward_bound, reward_mean
 
 
+
 if __name__ == "__main__":
     env = gym.make("CartPole-v0")
-    # env = gym.wrappers.Monitor(env, directory="mon", force=True)
+
+    video_base_dir = "G:\\ai\\videos\\"
+    board_base_dir = "G:\\ai\\tensorboard\\"
+    file_name = "ch04_01_01_cartpole_"
+    t = time.time()
+    video_dyn_dir = video_base_dir+file_name+str(int(t))
+    board_dyn_dir = board_base_dir+file_name+str(int(t))
+    env = gym.wrappers.Monitor(env, directory=video_dyn_dir)
+    writer = SummaryWriter(log_dir=board_dyn_dir, comment="-cartpole")
+
     obs_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
 
     net = Net(obs_size, HIDDEN_SIZE, n_actions)
     objective = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=net.parameters(), lr=0.01)
-    writer = SummaryWriter(comment="-cartpole")
+
 
     for iter_no, batch in enumerate(iterate_batches(env, net, BATCH_SIZE)):
         obs_v, acts_v, reward_b, reward_m = filter_batch(batch, PERCENTILE)
@@ -92,8 +105,7 @@ if __name__ == "__main__":
         loss_v = objective(action_scores_v, acts_v)
         loss_v.backward()
         optimizer.step()
-        print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f" % (
-            iter_no, loss_v.item(), reward_m, reward_b))
+        print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f" % (iter_no, loss_v.item(), reward_m, reward_b))
         writer.add_scalar("loss", loss_v.item(), iter_no)
         writer.add_scalar("reward_bound", reward_b, iter_no)
         writer.add_scalar("reward_mean", reward_m, iter_no)

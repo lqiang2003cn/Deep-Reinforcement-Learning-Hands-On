@@ -10,6 +10,7 @@ from numpy import long
 
 if __name__ == "__main__":
     env = gym.make("CartPole-v0")
+
     uuid  = uuid.uuid1()
     base_dir = "G:\\ai\\videos\\"
     t = time.time()
