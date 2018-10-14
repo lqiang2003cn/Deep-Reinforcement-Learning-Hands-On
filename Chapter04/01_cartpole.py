@@ -13,7 +13,7 @@ import torch.optim as optim
 
 
 HIDDEN_SIZE = 128
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 PERCENTILE = 70
 
 
@@ -59,17 +59,18 @@ def iterate_batches(env, net, batch_size):
                 batch = []#如果返回了batch，先清空batch
         obs = next_obs#设置下一个观察结果；如果episode结束了，则是重置后的观察结果，如果没有结束，则是env.step操作后返回的观察结果
 
-
+#过滤掉表现差的回合；
 def filter_batch(batch, percentile):
-    rewards = list(map(lambda s: s.reward, batch))
-    reward_bound = np.percentile(rewards, percentile)
-    reward_mean = float(np.mean(rewards))
+    rewards = list(map(lambda s: s.reward, batch))#将batch的reward部分单独取出来；
+    reward_bound = np.percentile(rewards, percentile)#奖励的阈值
+    reward_mean = float(np.mean(rewards))#该回合的平均奖励
 
     train_obs = []
     train_act = []
     for example in batch:
-        if example.reward < reward_bound:
+        if example.reward < reward_bound:#如果奖励低于该值，则不加入到精英的列表
             continue
+        #对steps列表中的每个元素进行循环，并把每个元素的observation取出来
         train_obs.extend(map(lambda step: step.observation, example.steps))
         train_act.extend(map(lambda step: step.action, example.steps))
 
@@ -82,8 +83,8 @@ def filter_batch(batch, percentile):
 if __name__ == "__main__":
     env = gym.make("CartPole-v0")
 
-    video_base_dir = "G:\\ai\\videos\\"
-    board_base_dir = "G:\\ai\\tensorboard\\"
+    video_base_dir = "D:\\deepLearning\\videos\\"
+    board_base_dir = "D:\\deepLearning\\tensorboard\\"
     file_name = "ch04_01_01_cartpole_"
     t = time.time()
     video_dyn_dir = video_base_dir+file_name+str(int(t))
@@ -91,26 +92,28 @@ if __name__ == "__main__":
     env = gym.wrappers.Monitor(env, directory=video_dyn_dir)
     writer = SummaryWriter(log_dir=board_dyn_dir, comment="-cartpole")
 
-    obs_size = env.observation_space.shape[0]
-    n_actions = env.action_space.n
+    obs_size = env.observation_space.shape[0]#每个观察的长度；
+    n_actions = env.action_space.n#可能的动作的个数；
 
     net = Net(obs_size, HIDDEN_SIZE, n_actions)
-    objective = nn.CrossEntropyLoss()
+    objective = nn.CrossEntropyLoss()#交叉熵的损失函数
+    #将神经网络中的参数作为优化的对象
     optimizer = optim.Adam(params=net.parameters(), lr=0.01)
 
-    #调用iterate_batches这个batch生成器；
+    #调用iterate_batches这个batch生成器；每次获取一个批次的回合信息；
     for iter_no, batch in enumerate(iterate_batches(env, net, BATCH_SIZE)):
+        #调用过滤器得到那个批次中的优秀的回合的数据，
         obs_v, acts_v, reward_b, reward_m = filter_batch(batch, PERCENTILE)
         optimizer.zero_grad()
-        action_scores_v = net(obs_v)
-        loss_v = objective(action_scores_v, acts_v)
-        loss_v.backward()
-        optimizer.step()
+        action_scores_v = net(obs_v)#将优秀回合的观察数据列表一次性传入到神经网络中；
+        loss_v = objective(action_scores_v, acts_v)#将神经网络输出的action_scores_v与acts_v进行计算；
+        loss_v.backward()#计算各参数的gradient
+        optimizer.step()#调整参数
         print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f" % (iter_no, loss_v.item(), reward_m, reward_b))
         writer.add_scalar("loss", loss_v.item(), iter_no)
         writer.add_scalar("reward_bound", reward_b, iter_no)
         writer.add_scalar("reward_mean", reward_m, iter_no)
-        if reward_m > 199:
+        if reward_m > 199:#如果平均奖励的值大于199，则算解决了问题；
             print("Solved!")
             break
     writer.close()

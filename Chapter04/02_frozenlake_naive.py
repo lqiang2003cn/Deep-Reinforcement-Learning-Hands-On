@@ -13,9 +13,9 @@ HIDDEN_SIZE = 128
 BATCH_SIZE = 16
 PERCENTILE = 70
 
-
+#定义一个wrapper，用来对观察结果进行封装，以适应神经网络的输入要求
 class DiscreteOneHotWrapper(gym.ObservationWrapper):
-    def __init__(self, env):
+    def __init__(self, env):#初始化的时候可以传入一个环境参数进来
         super(DiscreteOneHotWrapper, self).__init__(env)
         assert isinstance(env.observation_space, gym.spaces.Discrete)
         self.observation_space = gym.spaces.Box(0.0, 1.0, (env.observation_space.n, ), dtype=np.float32)
@@ -50,7 +50,8 @@ def iterate_batches(env, net, batch_size):
     obs = env.reset()
     sm = nn.Softmax(dim=1)
     while True:
-        obs_v = torch.FloatTensor([obs])
+        enclosedObs = [obs]
+        obs_v = torch.FloatTensor(enclosedObs)
         act_probs_v = sm(net(obs_v))
         act_probs = act_probs_v.data.numpy()[0]
         action = np.random.choice(len(act_probs), p=act_probs)
@@ -92,10 +93,19 @@ if __name__ == "__main__":
     obs_size = env.observation_space.shape[0]
     n_actions = env.action_space.n
 
+    import time
+    video_base_dir = "D:\\deepLearning\\videos\\"
+    board_base_dir = "D:\\deepLearning\\tensorboard\\"
+    file_name = "ch04_01_01_cartpole_"
+    t = time.time()
+    video_dyn_dir = video_base_dir+file_name+str(int(t))
+    board_dyn_dir = board_base_dir+file_name+str(int(t))
+    env = gym.wrappers.Monitor(env, directory=video_dyn_dir)
+    writer = SummaryWriter(log_dir=board_dyn_dir, comment="-cartpole")
+
     net = Net(obs_size, HIDDEN_SIZE, n_actions)
     objective = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=net.parameters(), lr=0.01)
-    writer = SummaryWriter(comment="-frozenlake-naive")
 
     for iter_no, batch in enumerate(iterate_batches(env, net, BATCH_SIZE)):
         obs_v, acts_v, reward_b, reward_m = filter_batch(batch, PERCENTILE)
@@ -104,8 +114,7 @@ if __name__ == "__main__":
         loss_v = objective(action_scores_v, acts_v)
         loss_v.backward()
         optimizer.step()
-        print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f" % (
-            iter_no, loss_v.item(), reward_m, reward_b))
+        print("%d: loss=%.3f, reward_mean=%.1f, reward_bound=%.1f" % (iter_no, loss_v.item(), reward_m, reward_b))
         writer.add_scalar("loss", loss_v.item(), iter_no)
         writer.add_scalar("reward_bound", reward_b, iter_no)
         writer.add_scalar("reward_mean", reward_m, iter_no)
