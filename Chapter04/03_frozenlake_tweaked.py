@@ -72,6 +72,7 @@ def iterate_batches(env, net, batch_size):
 
 
 def filter_batch(batch, percentile):
+    #A ** B 是幂运算，即求A的B次幂
     disc_rewards = list(map(lambda s: s.reward * (GAMMA ** len(s.steps)), batch))
     reward_bound = np.percentile(disc_rewards, percentile)
 
