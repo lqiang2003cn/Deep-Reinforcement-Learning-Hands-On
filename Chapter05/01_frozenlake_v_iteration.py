@@ -66,10 +66,20 @@ class Agent:
 if __name__ == "__main__":
     test_env = gym.make(ENV_NAME)
     agent = Agent()
-    writer = SummaryWriter(comment="-v-iteration")
 
-    iter_no = 0
-    best_reward = 0.0
+    import time
+    video_base_dir = "D:\\deepLearning\\videos\\"
+    board_base_dir = "D:\\deepLearning\\tensorboard\\"
+    file_name = "ch05_01_frozenlake_v_iteration"
+    t = time.time()
+    video_dyn_dir = video_base_dir+file_name+str(int(t))
+    board_dyn_dir = board_base_dir+file_name+str(int(t))
+    env = gym.wrappers.Monitor(test_env, directory=video_dyn_dir)
+    writer = SummaryWriter(log_dir=board_dyn_dir, comment="-v-iteration")
+
+
+    iter_no = 0#当前状态值的迭代次数；
+    best_reward = 0.0#最优先的
     while True:
         iter_no += 1
         agent.play_n_random_steps(100)
@@ -77,7 +87,7 @@ if __name__ == "__main__":
 
         reward = 0.0
         for _ in range(TEST_EPISODES):
-            reward += agent.play_episode(test_env)
+            reward += agent.play_episode(env)
         reward /= TEST_EPISODES
         writer.add_scalar("reward", reward, iter_no)
         if reward > best_reward:
