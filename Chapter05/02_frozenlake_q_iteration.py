@@ -14,7 +14,7 @@ class Agent:
         self.state = self.env.reset()
         self.rewards = collections.defaultdict(float)
         self.transits = collections.defaultdict(collections.Counter)
-        self.values = collections.defaultdict(float)
+        self.values = collections.defaultdict(float)#存储（state,action)的值；
 
     def play_n_random_steps(self, count):
         for _ in range(count):
@@ -27,7 +27,7 @@ class Agent:
     def select_action(self, state):
         best_action, best_value = None, None
         for action in range(self.env.action_space.n):
-            action_value = self.values[(state, action)]
+            action_value = self.values[(state, action)]#直接从values里面取，而不用调用calc_action_value进行计算了；
             if best_value is None or best_value < action_value:
                 best_value = action_value
                 best_action = action
@@ -47,15 +47,17 @@ class Agent:
             state = new_state
         return total_reward
 
+    #计算动作的值，而不是状态的值了；
     def value_iteration(self):
         for state in range(self.env.observation_space.n):
             for action in range(self.env.action_space.n):
                 action_value = 0.0
                 target_counts = self.transits[(state, action)]
-                total = sum(target_counts.values())
+                total = sum(target_counts.values())#
                 for tgt_state, count in target_counts.items():
                     reward = self.rewards[(state, action, tgt_state)]
                     best_action = self.select_action(tgt_state)
+                    #这里要取下一个状态的值，即下一个状态的各个动作中，最大的那一个；
                     action_value += (count / total) * (reward + GAMMA * self.values[(tgt_state, best_action)])
                 self.values[(state, action)] = action_value
 
@@ -69,7 +71,7 @@ if __name__ == "__main__":
     best_reward = 0.0
     while True:
         iter_no += 1
-        agent.play_n_random_steps(100)
+        agent.play_n_random_steps(1000)
         agent.value_iteration()
 
         reward = 0.0
