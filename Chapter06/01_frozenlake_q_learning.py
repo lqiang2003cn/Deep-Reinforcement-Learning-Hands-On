@@ -5,7 +5,7 @@ from tensorboardX import SummaryWriter
 
 ENV_NAME = "FrozenLake-v0"
 GAMMA = 0.9
-ALPHA = 0.2
+ALPHA = 0.2 #（1-a)*oldValue + a*newValue;综合新老Q值；
 TEST_EPISODES = 20
 
 
@@ -13,8 +13,9 @@ class Agent:
     def __init__(self):
         self.env = gym.make(ENV_NAME)
         self.state = self.env.reset()
-        self.values = collections.defaultdict(float)
+        self.values = collections.defaultdict(float)#不再记录内部状态了；历史记录都不用记录了
 
+    #随机地走一步环境；
     def sample_env(self):
         action = self.env.action_space.sample()
         old_state = self.state
@@ -22,6 +23,7 @@ class Agent:
         self.state = self.env.reset() if is_done else new_state
         return (old_state, action, reward, new_state)
 
+    #在状态s下的最佳动作及最佳值；
     def best_value_and_action(self, state):
         best_value, best_action = None, None
         for action in range(self.env.action_space.n):
@@ -32,10 +34,13 @@ class Agent:
         return best_value, best_action
 
     def value_update(self, s, a, r, next_s):
+        #计算下一状态
         best_v, _ = self.best_value_and_action(next_s)
+        #为什么到了这里就不用管概率分布了：因为已经预设了：从s状态执行a后，迁移到了状态next_s；
+        #不管其他的状态，只考虑迁移成功后到达的那个状态next_s的状态值；
         new_val = r + GAMMA * best_v
         old_val = self.values[(s, a)]
-        self.values[(s, a)] = old_val * (1-ALPHA) + new_val * ALPHA
+        self.values[(s, a)] = old_val * (1-ALPHA) + new_val * ALPHA#新老值之间进行一个权衡；
 
     def play_episode(self, env):
         total_reward = 0.0
@@ -59,6 +64,7 @@ if __name__ == "__main__":
     best_reward = 0.0
     while True:
         iter_no += 1
+        #每走一步就更新一次？
         s, a, r, next_s = agent.sample_env()
         agent.value_update(s, a, r, next_s)
 
