@@ -14,7 +14,7 @@ class MaxAndSkipEnv(gym.Wrapper):
         self._skip = skip
 
     #对于用户传入的action，做一些处理之后再传入到下一层；经过这个wrapper的封装以后，调用者调用一次step，对于atari的内核来说，已经调用了4次了；
-    #每调用一次step,跳过四帧，把最后两帧的max返回给观察者；
+    #每隔四部再做决定，即每过四帧之后再返回一帧。这一帧的值是最后两帧的max；
     def step(self, action):
         total_reward = 0.0
         done = None
@@ -60,7 +60,8 @@ class FireResetEnv(gym.Wrapper):
 class ProcessFrame84(gym.ObservationWrapper):
     def __init__(self, env=None):
         super(ProcessFrame84, self).__init__(env)
-        #为什么要把observation_space改成这个类型？没有赋值的地方啊
+        #为什么要把observation_space改成这个类型？没有赋值的地方啊：为了对外提供一个一直的环境。
+        #调用者如果要根据你的observation_space做一些判断，则最好这个判断与你返回的observation实际对象是一致的；
         self.observation_space = gym.spaces.Box(low=0, high=255, shape=(84, 84, 1), dtype=np.uint8)
 
     def observation(self, obs):
@@ -104,8 +105,9 @@ class BufferWrapper(gym.ObservationWrapper):
         return self.observation(self.env.reset())
 
     def observation(self, observation):
-        self.buffer[:-1] = self.buffer[1:]
-        self.buffer[-1] = observation
+        #这两行的操作等于出队入队；
+        self.buffer[:-1] = self.buffer[1:]#将数组的第一个到最后一个之前的数值赋值为从第二个到最后一个值；即将数值左移一个，等于抛弃第一个，空出了最后一个；
+        self.buffer[-1] = observation#把最后一个赋值为最新返回的观测值；
         return self.buffer
 
 class ScaledFloatFrame(gym.ObservationWrapper):
