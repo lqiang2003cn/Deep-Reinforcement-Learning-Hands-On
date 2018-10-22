@@ -42,6 +42,7 @@ class ExperienceBuffer:
     def append(self, experience):
         self.buffer.append(experience)
 
+    #随机从经验池中抽取32个
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
