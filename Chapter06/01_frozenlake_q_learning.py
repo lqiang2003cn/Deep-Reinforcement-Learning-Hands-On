@@ -64,7 +64,7 @@ if __name__ == "__main__":
     best_reward = 0.0
     while True:
         iter_no += 1
-        #每走一步就更新一次？
+        #每走一步就更新一次：只更新环境中遇到过的状态；
         s, a, r, next_s = agent.sample_env()
         agent.value_update(s, a, r, next_s)
 

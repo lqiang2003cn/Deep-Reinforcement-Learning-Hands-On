@@ -45,11 +45,11 @@ class ExperienceBuffer:
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)
         states, actions, rewards, dones, next_states = zip(*[self.buffer[idx] for idx in indices])
-        return np.array(states), np.array(actions), np.array(rewards, dtype=np.float32), \
-               np.array(dones, dtype=np.uint8), np.array(next_states)
+        return np.array(states), np.array(actions), np.array(rewards, dtype=np.float32),np.array(dones, dtype=np.uint8), np.array(next_states)
 
 
 class Agent:
+    #在启动Agent的时候会重置环境；经验池
     def __init__(self, env, exp_buffer):
         self.env = env
         self.exp_buffer = exp_buffer
@@ -62,9 +62,10 @@ class Agent:
     def play_step(self, net, epsilon=0.0, device="cpu"):
         done_reward = None
 
-        if np.random.random() < epsilon:
+        #决定如何选取下一个动作：按照传入的epsilon的概率进行选择；
+        if np.random.random() < epsilon:#如果概率小于epsilon，则随机
             action = env.action_space.sample()
-        else:
+        else:#如果概率大于epsilon，则走神经网络；
             state_a = np.array([self.state], copy=False)
             state_v = torch.tensor(state_a).to(device)
             q_vals_v = net(state_v)
@@ -106,10 +107,8 @@ def calc_loss(batch, net, tgt_net, device="cpu"):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cuda", default=False, action="store_true", help="Enable cuda")
-    parser.add_argument("--env", default=DEFAULT_ENV_NAME,
-                        help="Name of the environment, default=" + DEFAULT_ENV_NAME)
-    parser.add_argument("--reward", type=float, default=MEAN_REWARD_BOUND,
-                        help="Mean reward boundary for stop of training, default=%.2f" % MEAN_REWARD_BOUND)
+    parser.add_argument("--env", default=DEFAULT_ENV_NAME,help="Name of the environment, default=" + DEFAULT_ENV_NAME)
+    parser.add_argument("--reward", type=float, default=MEAN_REWARD_BOUND,help="Mean reward boundary for stop of training, default=%.2f" % MEAN_REWARD_BOUND)
     args = parser.parse_args()
     device = torch.device("cuda" if args.cuda else "cpu")
 
@@ -133,8 +132,8 @@ if __name__ == "__main__":
 
     while True:
         frame_idx += 1
+        #动态计算epsilon的值；培训前期随机的概率大，后期随机概率小；
         epsilon = max(EPSILON_FINAL, EPSILON_START - frame_idx / EPSILON_DECAY_LAST_FRAME)
-
         reward = agent.play_step(net, epsilon, device=device)
         if reward is not None:
             total_rewards.append(reward)
@@ -142,10 +141,7 @@ if __name__ == "__main__":
             ts_frame = frame_idx
             ts = time.time()
             mean_reward = np.mean(total_rewards[-100:])
-            print("%d: done %d games, mean reward %.3f, eps %.2f, speed %.2f f/s" % (
-                frame_idx, len(total_rewards), mean_reward, epsilon,
-                speed
-            ))
+            print("%d: done %d games, mean reward %.3f, eps %.2f, speed %.2f f/s" % (frame_idx, len(total_rewards), mean_reward, epsilon,speed))
             writer.add_scalar("epsilon", epsilon, frame_idx)
             writer.add_scalar("speed", speed, frame_idx)
             writer.add_scalar("reward_100", mean_reward, frame_idx)
@@ -161,10 +157,8 @@ if __name__ == "__main__":
 
         if len(buffer) < REPLAY_START_SIZE:
             continue
-
         if frame_idx % SYNC_TARGET_FRAMES == 0:
             tgt_net.load_state_dict(net.state_dict())
-
         optimizer.zero_grad()
         batch = buffer.sample(BATCH_SIZE)
         loss_t = calc_loss(batch, net, tgt_net, device=device)
